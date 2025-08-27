@@ -83,7 +83,7 @@
     <dependency>
       <groupId>com.microsoft.playwright</groupId>
       <artifactId>playwright</artifactId>
-      <version>${playwright.version}</version>
+      <version>1.46.0</version>
     </dependency>
   </dependencies>
 

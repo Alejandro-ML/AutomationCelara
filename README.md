@@ -1,94 +1,137 @@
-# UI Tests – Java + Playwright + Cucumber
+# QA UI Automation – Playwright + Cucumber (Java)
 
-End-to-end UI tests for a sample web app using **Java 21**, **Maven**, **Playwright**, **Cucumber (JUnit 5)** and **PicoContainer** for DI.
+End-to-end UI tests for the demo app (Login, Checkout, Grid, Search) running on **Playwright for Java** + **Cucumber** (JUnit Platform).
+Link to instructions: https://github.com/automationapptest/home-test
+---
 
-## Tech stack
-- Java: **21** (configurable via `maven.compiler.release`)
-- Maven: **3.9+**
-- Playwright: **1.46.0**
-- Cucumber JVM: **7.15.0**
-- JUnit Platform (Suite): **1.10.2**
+## ✨ Overview
+- **Stack:** Java, Maven, Playwright (Java), Cucumber, JUnit Platform, SLF4J.
+- **Pattern:** Page Object Model with dedicated *locators* packages, reusable `CommonSteps`, and Hooks that log + take screenshots on failure.
+- **Headless:** **Disabled by default** (`headless=false`) so the browser opens visibly.
 
-## Project structure
+---
+
+## 🧰 Requirements
+- JDK 17+
+- Maven 3.8+
+- Google Chrome installed (project launches with `setChannel("chrome")`). You can switch to stock Chromium if preferred.
+- Internet on first run (Playwright will download browsers if needed).
+
+---
+
+## 📁 Project Structure
 ```
-ChallengeTest/
-├─ pom.xml
-└─ src
-   └─ test
-      ├─ java
-      │  ├─ pages/
-      │  │  ├─ LoginLocators.java
-      │  │  └─ LoginPage.java
-      │  ├─ runners/
-      │  │  └─ RunCucumberTest.java
-      │  └─ steps/
-      │     ├─ Hooks.java
-      │     ├─ LoginSteps.java
-      │     └─ World.java
-      └─ resources
-         └─ features/
-            └─ login.feature
+src/
+└─ test/
+   ├─ java/
+   │  ├─ locators/
+   │  │  ├─ CheckoutLocators.java
+   │  │  ├─ GridLocators.java
+   │  │  ├─ LoginLocators.java
+   │  │  └─ SearchLocators.java
+   │  ├─ pages/
+   │  │  ├─ CheckoutPage.java
+   │  │  ├─ GridPage.java
+   │  │  ├─ LoginPage.java
+   │  │  └─ SearchPage.java
+   │  ├─ runners/
+   │  │  └─ RunCucumberTest.java
+   │  └─ steps/
+   │     ├─ CheckoutSteps.java
+   │     ├─ CommonSteps.java
+   │     ├─ GridSteps.java
+   │     ├─ Hooks.java
+   │     ├─ LoginSteps.java
+   │     └─ SearchSteps.java
+   └─ resources/
+      ├─ features/
+      │  ├─ checkout.feature
+      │  ├─ grid.feature
+      │  ├─ login.feature
+      │  └─ search.feature
+      └─ config.properties
 ```
-> `World` is the per-scenario context that shares Playwright objects (`Playwright`, `Browser`, `BrowserContext`, `Page`) and common config (e.g., `baseUrl`).
 
-## Prerequisites
-- JDK **21** installed (`java -version`). If you prefer JDK 17, change `<maven.compiler.release>` to `17` in `pom.xml`.
-- Maven **3.9+** (`mvn -v`).
-- App under test running locally at `http://localhost:3100` for the login tests.
+---
 
-## Create the config.file with the following keys
+## ⚙️ Configuration (MUST DO)
+Create `src/test/resources/config.properties` with the following keys:
+
+```properties
 baseUrl=http://localhost:3100
 headless=false
-Then allocate this file in the resource folder
-```
-Override at runtime with JVM properties, e.g.:
-```bash
--DbaseUrl=http://localhost:3100 -Dheadless=false
-```
-If your `Hooks` supports it, you can also pass:
-```bash
--Dbrowser=chromium|firefox|webkit  [-Dchannel=chrome|msedge]
 ```
 
-## First run
-Install Playwright browsers and run tests (headed):
-```bash
-mvn clean test -Dplaywright.cli.install=true -Dheadless=false -DbaseUrl=http://localhost:3100
-If you need chrome not to trigger set headless=true
-If you want to run the test in Chromium modify the hook file "setChannel("chromium")"
-```
-Subsequent runs (headless, using pom defaults):
+> `headless=false` means the browser **opens visibly**. Set `true` if you prefer headless CI runs.
+
+---
+
+## ▶️ How to Run with Maven
+
+Run the entire suite:
 ```bash
 mvn test
-
 ```
 
-## How to run
-- Run everything (headed/headless toggle):
+Run by **feature file**:
 ```bash
-mvn test -DbaseUrl=http://localhost:3100 -Dheadless=false
+# Checkout only
+mvn test -Dcucumber.features=src/test/resources/features/checkout.feature
+
+# Grid only
+mvn test -Dcucumber.features=src/test/resources/features/grid.feature
+
+# Login only
+mvn test -Dcucumber.features=src/test/resources/features/login.feature
+
+# Search only
+mvn test -Dcucumber.features=src/test/resources/features/search.feature
 ```
-- Run a single **scenario** by name (regex):
+
+Run by **tag**:
 ```bash
-mvn test -Dcucumber.filter.name="Login Success" -DbaseUrl=http://localhost:3100
+mvn test -Dcucumber.filter.tags=@order_success
+mvn test -Dcucumber.filter.tags="@cart_total or @form_alert"
 ```
-- Run a single **feature**:
+
+Run a **single scenario** (by line in the feature file):
 ```bash
-mvn test -Dcucumber.features=classpath:features/login.feature
+mvn test -Dcucumber.features=src/test/resources/features/checkout.feature:12
 ```
 
-## How it works
-- The JUnit 5 runner `RunCucumberTest` boots the **Cucumber** engine on the JUnit Platform.
-- `maven-surefire-plugin` includes `**/*RunCucumberTest.java` so Maven discovers the runner.
-- Features are loaded from `classpath:features` and steps (glue) from the `steps` package (configured in the runner).
-- `Hooks` creates and tears down Playwright per scenario (`@Before/@After`).
+Switch **headful/headless**:
+```properties
+# In src/test/resources/config.properties
+headless=false   # headful (default here)
+# headless=true  # headless (CI-friendly)
+```
 
-## Run from Playwright
-- Run a *.feature indvidually.
+---
 
-## Adding new tests
-1. Create a Page Object (`pages/*Page.java`) and, optionally,
-2. Create a locator class for each feature and allocate in (`locators/*Locators.java`).
-2. Add step definitions in `src/test/java/steps` (inject `World` via constructor).
-3. Write a `.feature` under `src/test/resources/features`.
-4. Run via `mvn test` or from the IDE by running `RunCucumberTest`.
+## 💡 Running Individual Features from the IDE (Plugins)
+
+You can run tests feature-by-feature and even scenario-by-scenario directly from the IDE thanks to Cucumber integrations.
+
+- **IntelliJ IDEA Plugins:**
+  - **Cucumber for Java** (required to run features and get step navigation).
+  - **Playwright** plugin is **optional**. Playwright Java runs through JUnit; no special plugin is required, but the plugin may provide editor niceties.  
+- **How:** Open any `*.feature` file and **Right‑click → Run** on a *Feature*, *Scenario Outline*, or a single *Scenario*. The IDE will invoke the JUnit Platform Cucumber engine and run only what you selected.
+
+> You can also run via Maven using `-Dcucumber.features=<path>` to target a single feature file without opening the IDE runner.
+
+---
+
+## 🧪 Features Covered
+- **Login UI** — Success / Failure.
+- **Checkout** — Order Success (redirect + confirmation number), Alert flow, Cart total equals sum.
+- **Grid** — Assertion by position (title/price), and a full validation that every card has title/price/image/button.
+- **Search** — Success message (`Found one result for <word>`) and empty-search validation (`Please provide a search word.`).
+
+---
+
+## 🪵 Logging & Evidence
+- Hooks log scenario start/end, browser version, and `document.readyState` after each step.
+- Steps log every action and assertion.
+- On failure, a full-page **screenshot** is attached to the scenario report.
+
+---
